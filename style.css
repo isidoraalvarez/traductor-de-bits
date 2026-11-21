@@ -1,0 +1,434 @@
+html {
+    min-width: 320px;
+    min-height: 100%;
+    overflow-x: hidden;
+}
+
+/* Fondo estilo Wii hecho solo con CSS (basado en referencia-fondo/):
+   textura de líneas horizontales finas arriba y una barra (dock) gris abajo con una pestaña curva al centro. */
+:root {
+    --dock-height: clamp(84px, 12vh, 120px);
+    /* Alto que sobresale la pestaña central sobre la barra. */
+    --dock-tab-height: 30px;
+    /* Espacio reservado para el pie: la barra más la pestaña. */
+    --footer-height: calc(var(--dock-height) + var(--dock-tab-height));
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #ececec;
+    background-image: repeating-linear-gradient(
+        0deg,
+        rgba(215, 215, 215, 0.4) 0px,
+        rgba(215, 215, 215, 0.4) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    background-attachment: fixed;
+    overflow-x: hidden;
+    min-height: 100dvh;
+    margin: 0;
+    padding-bottom: var(--footer-height);
+    user-select: none;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* El cursor del sistema solo se oculta si el JS cargó (clase custom-cursor) y el dispositivo usa mouse.
+   En celulares y tablets se mantiene el comportamiento normal. */
+@media (hover: hover) and (pointer: fine) {
+    body.custom-cursor,
+    body.custom-cursor * {
+        cursor: none !important;
+    }
+
+    body.custom-cursor .lid-cursor {
+        display: block;
+    }
+}
+
+.camera-processing-media {
+    position: fixed;
+    left: -10000px;
+    top: 0;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Cursor LID: mano abierta normalmente y puño mientras se presiona (mouse o mano cerrada en MediaPipe).
+   El translate deja la punta del dedo justo en la posición del cursor. */
+.lid-cursor {
+    display: none;
+    pointer-events: none !important;
+    position: fixed;
+    width: 48px;
+    height: 48px;
+    background-image: url("assets/cursor-mano-normal.png");
+    background-repeat: no-repeat;
+    background-size: contain;
+    z-index: 99999;
+    transform: translate(-35%, -1%);
+    opacity: 1;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+}
+
+body.cursor-pressed .lid-cursor {
+    background-image: url("assets/cursor-mano-presionar.png");
+}
+
+body.camera-mode-active .lid-cursor {
+    display: block;
+}
+
+/* Botón estilo Wii (estilo-boton-estandar.png sin el marco blanco).
+   La imagen va en ::before con border-image para que los extremos redondos no se deformen
+   al cambiar el ancho del botón, y el contraste extra solo afecta a la imagen, no al texto. */
+.wii-btn {
+    --wii-cap: 1.375rem;
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: calc(var(--wii-cap) * 2);
+    padding: 0 1.25rem;
+    border: 0;
+    background: transparent;
+    color: #ffffff;
+    font-weight: 800;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(15, 23, 80, 0.95), 0 0 6px rgba(15, 23, 80, 0.5);
+    transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+}
+
+.wii-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-style: solid;
+    border-color: transparent;
+    border-width: 0 var(--wii-cap);
+    border-image: url("assets/boton-estandar-sin-marco.png") 0 118 fill / 0 var(--wii-cap) / 0 stretch;
+    filter: contrast(1.35) saturate(1.25) drop-shadow(0 3px 4px rgba(30, 58, 138, 0.35));
+}
+
+.wii-btn-compact {
+    --wii-cap: 1.25rem;
+    padding: 0 1rem;
+}
+
+.wii-btn .wii-btn-tag {
+    text-shadow: none;
+}
+
+:is(button, a).wii-btn:hover:not(:disabled) {
+    filter: brightness(1.08);
+    transform: scale(1.03);
+}
+
+:is(button, a).wii-btn:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+button.wii-btn:disabled {
+    opacity: 0.55;
+    filter: grayscale(0.35);
+    cursor: not-allowed;
+}
+
+/* Pie de página fijo: contiene la barra (dock) y deja arriba el espacio de la pestaña central. */
+#appFooter {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--footer-height);
+    z-index: 20;
+    pointer-events: none;
+}
+
+.wii-bottom-dock {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--dock-height);
+    background: linear-gradient(180deg, #d8d8d8 0%, #cecece 100%);
+    border-top: 3px solid #7cb9e8;
+    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0 4rem;
+    pointer-events: auto;
+}
+
+/* Pestaña curva al centro de la barra; ahí va el tablón de mensajes con la fecha. */
+.wii-bottom-dock::before {
+    content: '';
+    position: absolute;
+    top: calc(-1 * var(--dock-tab-height));
+    left: 50%;
+    transform: translateX(-50%);
+    width: 45%;
+    height: calc(var(--dock-tab-height) + 5px);
+    background: linear-gradient(180deg, #ececec 0%, #d8d8d8 100%);
+    border-top: 3px solid #7cb9e8;
+    border-radius: 25px 25px 0 0;
+    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.03);
+}
+
+.wii-dock-board {
+    position: absolute;
+    top: calc(-1 * var(--dock-tab-height) - 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+}
+
+/* Ranuras en forma de pastilla con relieve: LID a la izquierda; MediaPipe y Ajustes a la derecha. */
+.wii-pill-slot {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    min-width: 190px;
+    height: 64px;
+    padding: 0 0.75rem;
+    background: #d4d4d4;
+    border-radius: 30px;
+    border: 2px solid #b8b8b8;
+    box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.1),
+                0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.wii-pill-slot::after {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    background: #e2e2e2;
+    border-radius: 24px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.wii-pill-slot > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Botones redondos (LID, MediaPipe, Ajustes): un poco más altos que la ranura, como en el menú Wii. */
+.dock-round-button {
+    flex-shrink: 0;
+    width: 5rem;
+    height: 5rem;
+    padding: 0;
+}
+
+@media (max-width: 640px) {
+    .wii-bottom-dock {
+        padding: 0 1rem;
+        gap: 0.5rem;
+    }
+
+    .wii-pill-slot {
+        min-width: 0;
+        height: 50px;
+        padding: 0 0.4rem;
+        gap: 0.4rem;
+    }
+
+    .dock-round-button {
+        width: 3.75rem;
+        height: 3.75rem;
+        border-width: 3px;
+    }
+
+    #messageBoardButton > div {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+}
+
+/* Sin archivo la ventana llena el espacio entre el encabezado y el pie.
+   Con imagen o espectrograma se encoge alrededor de ella (el tamaño lo calcula main.js). */
+.scanner-app-view {
+    min-height: 0;
+}
+
+.scanner-app-view.has-media {
+    width: fit-content;
+    align-self: center;
+}
+
+/* El texto del título se acomoda al ancho de la ventana en vez de estirarla. */
+.scanner-title-bar {
+    width: 0;
+    min-width: 100%;
+}
+
+.scanner-workspace {
+    display: grid;
+    grid-template-columns: 13rem minmax(0, 1fr);
+    gap: 1rem;
+    min-height: 0;
+    flex: 1;
+}
+
+.scanner-controls {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    padding: 0.25rem;
+}
+
+.scanner-playback-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.scanner-download-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.media-file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.canvas-container #canvas.free-mode-canvas {
+    touch-action: none;
+}
+
+.canvas-container {
+    min-height: 0;
+}
+
+/* Sin archivo el recuadro ocupa todo el espacio; con imagen o espectrograma se ajusta a su tamaño. */
+.canvas-container.has-media {
+    width: fit-content;
+    max-width: 100%;
+    height: fit-content;
+    justify-self: center;
+    align-self: center;
+}
+
+.canvas-container #canvas {
+    max-width: 100%;
+}
+
+@media (max-width: 640px) {
+    .scanner-app-view.has-media {
+        width: 100%;
+    }
+
+    .scanner-workspace {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+    .scanner-controls {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: center;
+    }
+    .scanner-controls > label:first-child,
+    .scanner-controls > #mediaUploadZone {
+        grid-column: 1 / -1;
+    }
+    .scanner-playback-controls {
+        flex-direction: row;
+    }
+
+    .scanner-download-controls {
+        flex-direction: row;
+    }
+}
+
+/* Pantallas bajas (por ejemplo notebooks de 1366x768): todo se compacta para que quepa sin scroll. */
+@media (max-height: 820px) and (min-width: 641px) {
+    #appHeader {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    #scannerAppView {
+        padding: 0.75rem;
+    }
+
+    #scannerTitleBar {
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .scanner-controls {
+        gap: 0.5rem;
+    }
+
+    #mediaUploadZone {
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+    }
+
+    .scanner-playback-controls {
+        flex-direction: row;
+    }
+
+    .scanner-playback-controls > button {
+        flex: 1;
+    }
+}
+
+/* Resizable and Movable Settings Window */
+.settings-modal {
+    pointer-events: none;
+}
+
+.settings-window {
+    position: absolute;
+    top: 50%;
+    right: 5rem;
+    transform: translateY(-50%);
+    width: 22rem;
+    min-width: 16rem;
+    max-width: calc(100vw - 2rem);
+    min-height: 12rem;
+    max-height: calc(100vh - 6rem);
+    resize: both;
+    overflow: auto;
+    padding: 1rem;
+    border: 4px solid #60a5fa;
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.98);
+    color: #1f2937;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+    pointer-events: auto;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
